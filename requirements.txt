@@ -1,18 +1,1 @@
-# requirements.txt
-# Cài toàn bộ: pip install -r requirements.txt
-
-# --- CORE ---
-streamlit==1.58.0         # Framework giao diện web
-pandas==2.2.3             # Xử lý dữ liệu bảng
-
-# --- DỮ LIỆU CHỨNG KHOÁN VIỆT NAM ---
-vnstock3==3.2.1           # Lấy dữ liệu giá, khối lượng, ngành từ HOSE/HNX/UPCOM
-
-# --- BẢO MẬT ---
-bcrypt==4.2.1             # Mã hóa mật khẩu (dùng trong auth.py)
-
-# --- BIỂU ĐỒ ---
-plotly==5.24.1            # Vẽ biểu đồ nến, đường giá, volume
-
-# --- TIỆN ÍCH ---
-pytz==2024.2              # Xử lý múi giờ Việt Nam (UTC+7)
+streamlit

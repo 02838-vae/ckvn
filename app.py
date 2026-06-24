@@ -2,101 +2,155 @@
 import streamlit as st
 import pandas as pd
 from auth import require_auth, logout
-from vnstock3 import Vnstock
 
+# ============================================================
+# CẤU HÌNH TRANG — phải đặt TRƯỚC mọi lệnh st khác
+# ============================================================
 st.set_page_config(
     page_title="Stock Screener VN",
     page_icon="📈",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ============ XÁC THỰC ============
+# ============================================================
+# XÁC THỰC — chặn ngay nếu chưa đăng nhập
+# ============================================================
 require_auth()
 
-# ============ HEADER ============
-col1, col2 = st.columns([8, 1])
-with col1:
+# ============================================================
+# HEADER
+# ============================================================
+col_title, col_logout = st.columns([9, 1])
+with col_title:
     st.title("📈 Stock Screener — Chứng khoán Việt Nam")
-    st.caption(f"👤 Xin chào, {st.session_state['username']}")
-with col2:
-    if st.button("🚪 Logout"):
+    st.caption(f"👤 {st.session_state['username']}  |  Dữ liệu tự động làm mới mỗi 5 phút")
+with col_logout:
+    st.write("")  # Đẩy nút xuống cho cân
+    if st.button("🚪 Logout", use_container_width=True):
         logout()
         st.rerun()
 
 st.divider()
 
-# ============ TẢI DỮ LIỆU ============
+# ============================================================
+# TẢI DỮ LIỆU
+# ============================================================
 @st.cache_data(ttl=300)  # Cache 5 phút
-def load_stock_data():
-    """Lấy toàn bộ danh sách cổ phiếu và thông tin giao dịch"""
-    stock = Vnstock().stock(symbol='VN30', source='VCI')
-    # Lấy danh sách tất cả cổ phiếu
-    listing = stock.listing.all_symbols()
-    return listing
+def load_data():
+    """Lấy dữ liệu bảng giá toàn thị trường từ vnstock3"""
+    try:
+        from vnstock3 import Vnstock
+        stock = Vnstock().stock(symbol='ACB', source='VCI')
+        df = stock.trading.price_board(['ACB', 'VCB', 'HPG', 'VIC', 'MSN',
+                                         'FPT', 'MWG', 'TCB', 'VHM', 'BID',
+                                         'CTG', 'GAS', 'PLX', 'SAB', 'VNM',
+                                         'POW', 'HDB', 'SSI', 'VPB', 'MBB'])
+        return df, None
+    except Exception as e:
+        return None, str(e)
 
-@st.cache_data(ttl=300)
-def load_market_data():
-    """Lấy dữ liệu giá và khối lượng toàn thị trường"""
-    stock = Vnstock().stock(source='VCI')
-    df = stock.trading.price_board(symbols_list=None)  # Tất cả mã
-    return df
 
-# ============ BỘ LỌC SIDEBAR ============
+# ============================================================
+# SIDEBAR — BỘ LỌC
+# ============================================================
 with st.sidebar:
-    st.header("🎯 Bộ lọc cổ phiếu")
-
-    # Lọc theo sàn
-    exchange = st.multiselect(
-        "Sàn giao dịch",
-        ["HOSE", "HNX", "UPCOM"],
-        default=["HOSE"]
-    )
-
-    # Lọc theo nhóm ngành
-    industry = st.multiselect(
-        "Nhóm ngành (GICS)",
-        ["Ngân hàng", "Bất động sản", "Công nghệ", "Thép",
-         "Dầu khí", "Bán lẻ", "Dược phẩm", "Điện", "Chứng khoán"],
-        default=[]
-    )
+    st.header("🎯 Bộ lọc")
 
     st.subheader("📊 Khối lượng giao dịch")
-    min_vol = st.number_input("Khối lượng tối thiểu (nghìn CP)", min_value=0, value=100)
-    max_vol = st.number_input("Khối lượng tối đa (nghìn CP)", min_value=0, value=10000)
+    min_vol = st.number_input("Tối thiểu (nghìn CP)", min_value=0, value=0, step=100)
 
-    st.subheader("📉 Biến động giá")
-    price_change = st.slider(
-        "% Thay đổi giá so với hôm qua",
+    st.subheader("📉 Biến động giá (%)")
+    price_change_range = st.slider(
+        "% thay đổi so với hôm qua",
         min_value=-15.0, max_value=15.0,
         value=(-15.0, 15.0), step=0.5
     )
 
-    st.subheader("💰 Giá cổ phiếu")
+    st.subheader("💰 Giá (nghìn VNĐ)")
     price_range = st.slider(
-        "Khoảng giá (nghìn VNĐ)",
+        "Khoảng giá",
         min_value=0, max_value=200,
         value=(0, 200)
     )
 
-    apply_filter = st.button("🔍 Lọc cổ phiếu", type="primary", use_container_width=True)
+    st.divider()
+    btn_refresh = st.button("🔄 Làm mới dữ liệu", use_container_width=True)
+    if btn_refresh:
+        st.cache_data.clear()
+        st.rerun()
 
-# ============ HIỂN THỊ KẾT QUẢ ============
-if apply_filter or True:  # Tự động load lần đầu
-    with st.spinner("Đang tải dữ liệu thị trường..."):
-        try:
-            df = load_market_data()
-            # TODO: Apply filters dựa trên df thực tế từ vnstock3
-            st.dataframe(df, use_container_width=True)
-        except Exception as e:
-            st.error(f"Lỗi tải dữ liệu: {e}")
-            st.info("💡 Đang dùng dữ liệu mẫu để demo...")
-            # Demo data
-            demo_df = pd.DataFrame({
-                "Mã CP": ["VCB", "HPG", "VIC", "MSN", "FPT"],
-                "Ngành": ["Ngân hàng", "Thép", "Bất động sản", "Thực phẩm", "Công nghệ"],
-                "Giá": [85.5, 28.3, 42.1, 71.0, 95.2],
-                "% Thay đổi": [1.2, -0.8, 2.5, -1.1, 3.0],
-                "KL Giao dịch (nghìn)": [1200, 5400, 800, 950, 2100],
-                "Sàn": ["HOSE"] * 5,
-            })
-            st.dataframe(demo_df, use_container_width=True)
+# ============================================================
+# LOAD & HIỂN THỊ DỮ LIỆU
+# ============================================================
+with st.spinner("⏳ Đang tải dữ liệu thị trường..."):
+    df, error = load_data()
+
+if error:
+    st.warning(f"⚠️ Không lấy được dữ liệu thực: `{error}`")
+    st.info("👇 Đang hiển thị dữ liệu mẫu để kiểm tra giao diện")
+
+    # Dữ liệu mẫu khi vnstock3 lỗi hoặc ngoài giờ giao dịch
+    df = pd.DataFrame({
+        "Mã CP":           ["VCB",   "HPG",   "VIC",   "MSN",   "FPT",   "MWG",   "TCB",   "BID",   "VHM",   "SSI"],
+        "Giá":             [85.5,    28.3,    42.1,    71.0,    95.2,    45.6,    22.8,    44.1,    38.7,    28.5],
+        "% Thay đổi":      [1.2,    -0.8,     2.5,    -1.1,     3.0,     0.5,    -2.1,     1.8,    -0.3,     4.2],
+        "KL Khớp (nghìn)": [1200,    5400,    800,     950,    2100,    3200,    4100,    1800,     650,    5800],
+        "Ngành":           ["Ngân hàng","Thép","BĐS","Thực phẩm","Công nghệ","Bán lẻ","Ngân hàng","Ngân hàng","BĐS","Chứng khoán"],
+        "Sàn":             ["HOSE"] * 10,
+    })
+
+# ---- Áp dụng bộ lọc ----
+if df is not None and not df.empty:
+    try:
+        # Lọc % thay đổi
+        if "% Thay đổi" in df.columns:
+            df = df[df["% Thay đổi"].between(price_change_range[0], price_change_range[1])]
+
+        # Lọc giá
+        if "Giá" in df.columns:
+            df = df[df["Giá"].between(price_range[0], price_range[1])]
+
+        # Lọc khối lượng
+        kl_col = [c for c in df.columns if "KL" in c or "kltt" in c.lower() or "vol" in c.lower()]
+        if kl_col:
+            df = df[df[kl_col[0]] >= min_vol]
+
+    except Exception:
+        pass  # Nếu tên cột từ vnstock3 khác → bỏ qua filter, vẫn hiện bảng
+
+    # ---- Metrics tổng quan ----
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Tổng số mã", len(df))
+
+    try:
+        tang = len(df[df["% Thay đổi"] > 0])
+        giam = len(df[df["% Thay đổi"] < 0])
+        m2.metric("🟢 Tăng", tang)
+        m3.metric("🔴 Giảm", giam)
+        m4.metric("⬜ Đứng", len(df) - tang - giam)
+    except Exception:
+        pass
+
+    st.divider()
+
+    # ---- Bảng dữ liệu ----
+    st.subheader("📋 Danh sách cổ phiếu")
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=500,
+        hide_index=True
+    )
+
+    # ---- Nút xuất CSV ----
+    csv = df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="⬇️ Tải xuống CSV",
+        data=csv,
+        file_name="stock_screener.csv",
+        mime="text/csv"
+    )
+
+else:
+    st.error("Không có dữ liệu để hiển thị.")

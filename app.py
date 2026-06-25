@@ -59,10 +59,7 @@ def show_login(timed_out=False):
             min-height: 100vh;
         }
 
-        /* Ẩn label của input */
-        label[data-testid="stWidgetLabel"] { display: none !important; }
-
-        /* Viền xanh cho input */
+        /* Viền xanh cho input, bỏ viền đỏ mặc định */
         input[type="text"], input[type="password"] {
             border: 2px solid #1a73e8 !important;
             border-radius: 6px !important;
@@ -75,9 +72,22 @@ def show_login(timed_out=False):
             border: 2px solid #1a73e8 !important;
             box-shadow: 0 0 0 2px rgba(26,115,232,0.2) !important;
         }
+        /* Bỏ viền đỏ khi Streamlit báo lỗi focus */
+        div[data-baseweb="input"]:focus-within {
+            border-color: #1a73e8 !important;
+            box-shadow: none !important;
+        }
+        div[data-baseweb="input"] {
+            border: none !important;
+            box-shadow: none !important;
+        }
 
-        /* Ẩn placeholder khi focus */
-        input:focus::placeholder { color: transparent !important; }
+        /* Ẩn tooltip "Press Enter to submit" */
+        div[data-testid="InputInstructions"] { display: none !important; }
+        small[data-testid="InputInstructions"] { display: none !important; }
+        [data-testid="stFormSubmitButton"] + div { display: none !important; }
+        .st-emotion-cache-ue6h4q { display: none !important; }
+        p.st-emotion-cache-ue6h4q { display: none !important; }
 
         /* Nút đăng nhập */
         div[data-testid="stFormSubmitButton"] button {

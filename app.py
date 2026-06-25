@@ -4,7 +4,7 @@ import time
 # ─── CONFIG ───────────────────────────────────────────────
 USERNAME = "vae02838"
 PASSWORD = "victory"
-TIMEOUT_SECONDS = 3600  # 1 giờ = 3600 giây
+TIMEOUT_SECONDS = 3600  # 1 giờ
 
 # ─── PAGE CONFIG ──────────────────────────────────────────
 st.set_page_config(page_title="My App", page_icon="🔒", layout="centered")
@@ -38,62 +38,94 @@ def check_timeout():
         if elapsed > TIMEOUT_SECONDS:
             st.session_state.logged_in = False
             st.session_state.last_activity = None
-            return True  # đã timeout
+            return True
     return False
 
 # ─── LOGIN PAGE ───────────────────────────────────────────
-def show_login():
+def show_login(timed_out=False):
     st.markdown("""
         <style>
-        .login-box {
-            max-width: 400px;
-            margin: 80px auto 0 auto;
-            padding: 2rem;
-            border-radius: 12px;
-            background: #f8f9fa;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        /* Ẩn header mặc định của Streamlit */
+        header[data-testid="stHeader"] { display: none; }
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+
+        /* Căn giữa toàn trang */
+        .block-container {
+            padding-top: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Ẩn label của input */
+        label[data-testid="stWidgetLabel"] { display: none !important; }
+
+        /* Viền xanh cho input */
+        input[type="text"], input[type="password"] {
+            border: 2px solid #1a73e8 !important;
+            border-radius: 6px !important;
+            padding: 10px 12px !important;
+            font-size: 15px !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border: 2px solid #1a73e8 !important;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.2) !important;
+        }
+
+        /* Ẩn placeholder khi focus */
+        input:focus::placeholder { color: transparent !important; }
+
+        /* Nút đăng nhập */
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: #1a73e8 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 6px !important;
+            font-size: 15px !important;
+            padding: 10px !important;
+            cursor: pointer !important;
+        }
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #1558b0 !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("## 🔒 Đăng nhập")
-        st.markdown("---")
+        if timed_out:
+            st.warning("⏰ Phiên đã hết hạn. Vui lòng đăng nhập lại.")
 
         with st.form("login_form"):
-            username = st.text_input("👤 Username", placeholder="Nhập username...")
-            password = st.text_input("🔑 Password", type="password", placeholder="Nhập password...")
+            username = st.text_input("username", placeholder="")
+            password = st.text_input("password", type="password", placeholder="")
             submitted = st.form_submit_button("Đăng nhập", use_container_width=True)
 
             if submitted:
                 login(username, password)
 
-# ─── MAIN APP (sau khi đăng nhập) ────────────────────────
+# ─── MAIN APP ─────────────────────────────────────────────
 def show_app():
-    # Cập nhật activity mỗi khi user tương tác
     update_activity()
 
-    # Tính thời gian còn lại
-    elapsed = time.time() - st.session_state.last_activity
-    remaining = TIMEOUT_SECONDS - elapsed
-    mins = int(remaining // 60)
-    secs = int(remaining % 60)
+    st.markdown("""
+        <style>
+        header[data-testid="stHeader"] { display: none; }
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        .block-container { padding-top: 1rem !important; }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # Header
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.title("🏠 Trang chính")
+    # Nút đăng xuất góc trên phải
+    col1, col2 = st.columns([5, 1])
     with col2:
-        st.markdown(f"<small>⏱ Còn lại: {mins:02d}:{secs:02d}</small>", unsafe_allow_html=True)
-        if st.button("🚪 Đăng xuất"):
+        if st.button("Đăng xuất"):
             logout()
-
-    st.markdown("---")
-
-    # ── NỘI DUNG APP CỦA BẠN Ở ĐÂY ──
-    st.success(f"✅ Xin chào, **{USERNAME}**! Bạn đã đăng nhập thành công.")
-    st.info("💡 Thêm nội dung app của bạn vào đây.")
 
     # Auto-refresh mỗi 60 giây để check timeout
     st.markdown("""
@@ -102,12 +134,14 @@ def show_app():
         </script>
     """, unsafe_allow_html=True)
 
+    # ── NỘI DUNG APP CỦA BẠN Ở ĐÂY ──
+
+
 # ─── MAIN LOGIC ───────────────────────────────────────────
 timed_out = check_timeout()
 
 if timed_out:
-    st.warning("⏰ Phiên làm việc đã hết hạn (1 giờ không hoạt động). Vui lòng đăng nhập lại.")
-    show_login()
+    show_login(timed_out=True)
 elif not st.session_state.logged_in:
     show_login()
 else:

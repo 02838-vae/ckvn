@@ -1,5 +1,5 @@
-streamlit
-pandas
-numpy
-pyarrow
-vnstock3
+streamlit>=1.32.0
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+vnstock3>=0.3.0

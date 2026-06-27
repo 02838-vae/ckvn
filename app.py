@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import vnstock3 as vn
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')

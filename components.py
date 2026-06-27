@@ -134,7 +134,8 @@ def render_results_table(df: pd.DataFrame):
         # Màu % thay đổi
         for col in available_style:
             if col in df.columns:
-                styler = styler.applymap(_color_pct, subset=[col])
+                _cell_map = getattr(styler, "map", None) or styler.applymap
+                styler = _cell_map(_color_pct, subset=[col])
 
         # Màu RSI
         if "RSI" in df.columns:

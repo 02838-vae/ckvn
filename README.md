@@ -1,84 +1,40 @@
-# 📈 Stock Screener VN — Streamlit App
+# 📈 Stock Screener VN
 
-Ứng dụng lọc cổ phiếu Việt Nam theo:
-- 💰 Giá trị giao dịch bình quân (tỷ đồng/ngày)
-- 📊 % Tăng/giảm theo 1 tháng / 3 tháng / 6 tháng
-- 📉 RSI 14 phiên (quá mua / quá bán / trung tính)
-- 📌 Sàn: HOSE / HNX / UPCOM
+Lọc cổ phiếu Việt Nam (HOSE · HNX · UPCOM) theo:
+- 💰 Giá trị GD bình quân/ngày (≥200tr / ≥500tr / ≥1tỷ / ≥10tỷ)
+- 📊 % Tăng/giảm giá (1 tuần / 1 tháng / 3 tháng / 6 tháng / 1 năm)
+- 📉 RSI 14 phiên theo khung (1D / 1W / 1M / 3M / 6M)
 
----
-
-## 🚀 Cài đặt & Chạy
-
-### 1. Yêu cầu
-
-- Python 3.10+
-- pip
-
-### 2. Cài thư viện
+## Cài đặt & chạy
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 3. Chạy app
-
-```bash
 streamlit run app.py
 ```
 
-Mở trình duyệt tại: http://localhost:8501
+## Luồng sử dụng
 
----
+1. Nhấn **"Tải dữ liệu tất cả cổ phiếu"** → fetch từ TCBS, lưu `market_data.parquet`
+2. Lần sau vào lại → chọn **"Dùng dữ liệu đã lưu"** (nhanh) hoặc **"Tải lại từ đầu"**
+3. Nhấn các nút **Giá trị GD / % Tăng giảm / RSI** → chọn tiêu chí trong panel
+4. Nhấn **"Hiện kết quả"** → xem bảng + tải CSV
 
-## 📁 Cấu trúc dự án
+## Công thức tính
 
-```
-stock_screener/
-├── app.py              # Giao diện chính Streamlit
-├── data_loader.py      # Load + cache dữ liệu từ TCBS/vnstock
-├── filters.py          # Logic lọc cổ phiếu
-├── components.py       # UI components (bảng, metrics bar)
-├── requirements.txt    # Thư viện cần thiết
-└── README.md
-```
-
----
-
-## 💡 Cách hoạt động
-
-### Nguồn dữ liệu
-- **vnstock** → TCBS API (miễn phí, không cần key)
-- Lấy lịch sử giá 200 ngày cho mỗi mã
-
-### Cache thông minh
-- Lần đầu: fetch từ TCBS, lưu vào `cache_market_data.parquet`
-- Các lần sau (trong vòng 1 tiếng): đọc từ cache → **cực nhanh**
-- `@st.cache_data(ttl=3600)` tránh re-fetch không cần thiết
-
-### Chỉ số tính toán
 | Chỉ số | Công thức |
 |--------|-----------|
-| % 1 tháng | (Giá hôm nay / Giá 21 phiên trước - 1) × 100 |
-| % 3 tháng | (Giá hôm nay / Giá 63 phiên trước - 1) × 100 |
-| % 6 tháng | (Giá hôm nay / Giá 126 phiên trước - 1) × 100 |
-| RSI | EWM-RSI 14 phiên (Wilder smoothing) |
-| GT GD TB | Trung bình 20 phiên gần nhất (tỷ đồng) |
+| GTGD TB/ngày | Tổng value tháng gần nhất ÷ số phiên GD trong tháng |
+| % thay đổi | (Giá đóng cửa cuối kỳ − Giá mở cửa đầu kỳ) ÷ Giá mở cửa đầu kỳ × 100 |
+| RSI | EWM-RSI 14 phiên, resample theo khung (D/W/M/3M/6M) |
 
----
+## Cấu trúc
 
-## ⚠️ Lưu ý
+```
+app.py          — Giao diện chính, luồng UX
+data_loader.py  — Fetch + cache + tính chỉ số
+filters.py      — Logic lọc
+components.py   — Bảng HTML kết quả
+requirements.txt
+```
 
-- **vnstock chưa cài**: App tự dùng demo data để test giao diện
-- **Rate limit**: App giới hạn 300–500 mã/lần fetch để tránh bị block
-- Dữ liệu chỉ mang tính **tham khảo**, không phải khuyến nghị đầu tư
-
----
-
-## 🛠️ Nâng cấp tiếp theo
-
-- [ ] Thêm biểu đồ giá (candlestick) khi click vào mã
-- [ ] Lọc theo ngành (VNM sector)
-- [ ] Alert email khi mã đáp ứng điều kiện
-- [ ] Tích hợp dữ liệu tài chính (P/E, ROE, EPS)
-- [ ] Deploy lên Streamlit Cloud
+> Dữ liệu từ TCBS qua vnstock3 · Chỉ tham khảo, không phải khuyến nghị đầu tư
